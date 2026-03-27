@@ -19,6 +19,6 @@
       },
       "package": "com.notes.app"
     },
-    "plugins": ["expo-sqlite"]
+    "plugins": []
   }
 }
