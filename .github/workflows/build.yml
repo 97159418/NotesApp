@@ -17,20 +17,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Debug - Check expo config error
+      - name: Debug - Deep check
         run: |
           set +e
-          echo "=== npx expo config with stderr ==="
-          npx expo config --json 1>/tmp/expo-stdout.txt 2>/tmp/expo-stderr.txt
-          echo "Exit code: $?"
-          echo "=== STDOUT ==="
-          cat /tmp/expo-stdout.txt
-          echo "=== STDERR ==="
-          cat /tmp/expo-stderr.txt
-          echo "=== Try directly importing with node ==="
-          node -e "import('expo-sqlite').then(m => console.log('OK', Object.keys(m))).catch(e => console.error('FAIL', e.message))" 2>&1
-          echo "=== Try require ==="
-          node -e "try { console.log('OK', Object.keys(require('expo-sqlite'))) } catch(e) { console.error('FAIL', e.message) }" 2>&1
+          echo "=== Node version ==="
+          node --version
+          echo "=== Check SQLiteDatabase.js directly ==="
+          node -e "const fs = require('fs'); const p = require.resolve('expo-sqlite'); console.log('resolved:', p); const dir = require('path').dirname(p); console.log('files:', fs.readdirSync(dir).filter(f => f.includes('SQLiteDatabase')));"
+          echo "=== Check if it's an ESM issue ==="
+          node -e "const m = require('module'); console.log('builtinModules:', m.builtinModules.slice(0,3))"
+          echo "=== Try loading SQLiteDatabase directly ==="
+          node -e "try { require('./node_modules/expo-sqlite/build/SQLiteDatabase.js'); console.log('Direct require OK') } catch(e) { console.error('Direct require FAIL:', e.message) }"
+          echo "=== Try with import ==="
+          node --input-type=module -e "import { openDatabaseSync } from './node_modules/expo-sqlite/build/SQLiteDatabase.js'; console.log('Direct import OK')" 2>&1
+          echo "=== Check package.json exports ==="
+          node -e "const pkg = require('./node_modules/expo-sqlite/package.json'); console.log('exports:', JSON.stringify(pkg.exports, null, 2)); console.log('type:', pkg.type)"
+          echo "=== npx expo doctor ==="
+          npx expo doctor 2>&1 || true
         shell: bash {0}
 
       - name: Setup EAS
