@@ -17,13 +17,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Debug - Check expo config
+      - name: Debug - Check expo config error
         run: |
-          npx expo config --json 2>&1 || echo "expo config failed"
-          echo "---"
-          ls -la node_modules/expo-sqlite/build/ 2>&1 || echo "build dir not found"
-          echo "---"
-          cat node_modules/expo-sqlite/package.json | head -20
+          echo "=== npx expo config output ==="
+          npx expo config --json 2>&1 || true
+          echo "=== index.js content ==="
+          cat node_modules/expo-sqlite/build/index.js
+          echo "=== Check if SQLiteDatabase.js exists ==="
+          ls -la node_modules/expo-sqlite/build/SQLiteDatabase* 2>&1 || echo "NOT FOUND"
+          echo "=== Check for SQLiteDataBase (capital B) ==="
+          ls -la node_modules/expo-sqlite/build/SQLiteDataBase* 2>&1 || echo "NOT FOUND"
+          echo "=== All JS files in build ==="
+          ls node_modules/expo-sqlite/build/*.js 2>&1
 
       - name: Setup EAS
         uses: expo/expo-github-action@v8
