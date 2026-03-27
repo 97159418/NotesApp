@@ -23,5 +23,18 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Configure EAS
+        run: eas build:configure --platform android --non-interactive
+
       - name: Build APK
-        run: eas build --platform android --profile production --non-interactive
+        run: eas build --platform android --profile production --non-interactive --no-wait
+
+      - name: Wait and download
+        run: |
+          echo "Build submitted to Expo. Check https://expo.dev for download."
+          sleep 30
+          BUILD_ID=$(eas build:list --platform android --limit 1 --json --non-interactive | jq -r '.[0].id // empty')
+          echo "Build ID: $BUILD_ID"
+          if [ -n "$BUILD_ID" ]; then
+            echo "Download from: https://expo.dev/accounts/97159418/projects/notes-app/builds/$BUILD_ID"
+          fi
