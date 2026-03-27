@@ -19,16 +19,16 @@ jobs:
 
       - name: Debug - Check expo config error
         run: |
-          echo "=== npx expo config output ==="
-          npx expo config --json 2>&1 || true
-          echo "=== index.js content ==="
-          cat node_modules/expo-sqlite/build/index.js
-          echo "=== Check if SQLiteDatabase.js exists ==="
-          ls -la node_modules/expo-sqlite/build/SQLiteDatabase* 2>&1 || echo "NOT FOUND"
-          echo "=== Check for SQLiteDataBase (capital B) ==="
-          ls -la node_modules/expo-sqlite/build/SQLiteDataBase* 2>&1 || echo "NOT FOUND"
-          echo "=== All JS files in build ==="
-          ls node_modules/expo-sqlite/build/*.js 2>&1
+          echo "=== npx expo config with stderr ==="
+          npx expo config --json 1>/dev/null 2>&1
+          EXIT_CODE=$?
+          echo "Exit code: $EXIT_CODE"
+          echo "=== Try npx expo config without --json ==="
+          npx expo config 2>&1 | head -20 || true
+          echo "=== Try directly importing index.js with node ==="
+          node -e "import('expo-sqlite').then(m => console.log('OK', Object.keys(m))).catch(e => console.error('FAIL', e.message))" 2>&1 || true
+          echo "=== Try require ==="
+          node -e "try { console.log('OK', Object.keys(require('expo-sqlite'))) } catch(e) { console.error('FAIL', e.message) }" 2>&1 || true
 
       - name: Setup EAS
         uses: expo/expo-github-action@v8
