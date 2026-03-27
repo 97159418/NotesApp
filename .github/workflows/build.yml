@@ -19,16 +19,19 @@ jobs:
 
       - name: Debug - Check expo config error
         run: |
+          set +e
           echo "=== npx expo config with stderr ==="
-          npx expo config --json 1>/dev/null 2>&1
-          EXIT_CODE=$?
-          echo "Exit code: $EXIT_CODE"
-          echo "=== Try npx expo config without --json ==="
-          npx expo config 2>&1 | head -20 || true
-          echo "=== Try directly importing index.js with node ==="
-          node -e "import('expo-sqlite').then(m => console.log('OK', Object.keys(m))).catch(e => console.error('FAIL', e.message))" 2>&1 || true
+          npx expo config --json 1>/tmp/expo-stdout.txt 2>/tmp/expo-stderr.txt
+          echo "Exit code: $?"
+          echo "=== STDOUT ==="
+          cat /tmp/expo-stdout.txt
+          echo "=== STDERR ==="
+          cat /tmp/expo-stderr.txt
+          echo "=== Try directly importing with node ==="
+          node -e "import('expo-sqlite').then(m => console.log('OK', Object.keys(m))).catch(e => console.error('FAIL', e.message))" 2>&1
           echo "=== Try require ==="
-          node -e "try { console.log('OK', Object.keys(require('expo-sqlite'))) } catch(e) { console.error('FAIL', e.message) }" 2>&1 || true
+          node -e "try { console.log('OK', Object.keys(require('expo-sqlite'))) } catch(e) { console.error('FAIL', e.message) }" 2>&1
+        shell: bash {0}
 
       - name: Setup EAS
         uses: expo/expo-github-action@v8
