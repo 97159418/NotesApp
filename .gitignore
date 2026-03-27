@@ -1,0 +1,9 @@
+node_modules/
+package-lock.json
+.expo/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*

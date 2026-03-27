@@ -2,8 +2,6 @@ name: Build Android APK
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 jobs:
   build:
@@ -16,12 +14,6 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
       - name: Setup EAS
         uses: expo/expo-github-action@v8
         with:
@@ -32,16 +24,4 @@ jobs:
         run: npm install
 
       - name: Build APK
-        run: eas build --platform android --profile production --non-interactive --no-wait
-
-      - name: Download build
-        run: |
-          sleep 120
-          BUILD_ID=$(eas build:list --platform android --limit 1 --json | jq -r '.[0].id')
-          eas build:download --id $BUILD_ID --output ./app-release.aab
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: notes-app-apk
-          path: ./app-release.aab
+        run: eas build --platform android --profile production --non-interactive
