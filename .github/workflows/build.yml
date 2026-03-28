@@ -23,30 +23,18 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
       - name: Install dependencies
         run: npm install
 
-      - name: Build APK with EAS
-        run: eas build --platform android --profile apk --non-interactive --no-wait
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
 
-      - name: Build APK (local fallback)
-        if: failure()
-        run: |
-          npx expo prebuild --platform android
-          cd android
-          ./gradlew assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk ../app-release.apk
+      - name: Build APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
-        if: success()
         with:
           name: notes-app-apk
-          path: '*.apk'
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
