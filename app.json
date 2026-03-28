@@ -19,7 +19,6 @@
       "package": "com.notesapp"
     },
     "plugins": [
-      "expo-sqlite",
       "expo-file-system",
       "expo-sharing",
       "expo-document-picker"
