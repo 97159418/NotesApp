@@ -17,11 +17,6 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.notesapp"
-    },
-    "plugins": [
-      "expo-file-system",
-      "expo-sharing",
-      "expo-document-picker"
-    ]
+    }
   }
 }
