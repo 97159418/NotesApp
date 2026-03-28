@@ -1,42 +1,48 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
+import { useTheme } from '../theme';
 
-export default function NoteCard({ note, isSelected, onPress, colors }) {
-  const formatDate = (ts) => {
-    const d = new Date(ts);
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    const h = String(d.getHours()).padStart(2, '0');
-    const m = String(d.getMinutes()).padStart(2, '0');
-    return `${mm}-${dd} ${h}:${m}`;
-  };
+export default function NoteCard({ note, onPress, onLongPress }) {
+  const { theme } = useTheme();
 
-  const preview = note.content.replace(/<[^>]+>/g, '').substring(0, 60);
+  const preview = note.content
+    ? note.content.substring(0, 100).replace(/\n/g, ' ')
+    : '无内容';
+
+  const tags = note.tags
+    ? note.tags.split(',').filter(t => t.trim())
+    : [];
+
+  const date = new Date(note.updated_at);
+  const dateStr = `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 
   return (
     <TouchableOpacity
-      style={[
-        styles.card,
-        { backgroundColor: isSelected ? colors.selected : colors.cardBg, borderBottomColor: colors.border }
-      ]}
-      onPress={onPress}
+      style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}
+      onPress={() => onPress(note)}
+      onLongPress={() => onLongPress && onLongPress(note)}
       activeOpacity={0.7}
     >
-      <Text style={[styles.title, { color: isSelected ? '#fff' : colors.text }]} numberOfLines={1}>
+      <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>
         {note.title || '无标题'}
       </Text>
-      <Text style={[styles.preview, { color: isSelected ? 'rgba(255,255,255,0.7)' : colors.text2 }]} numberOfLines={1}>
-        {preview || '空笔记'}
+      <Text style={[styles.preview, { color: theme.textSecondary }]} numberOfLines={2}>
+        {preview}
       </Text>
-      <View style={styles.meta}>
-        <Text style={[styles.date, { color: isSelected ? 'rgba(255,255,255,0.6)' : colors.text2 }]}>
-          {formatDate(note.updated_at)}
+      <View style={styles.footer}>
+        <Text style={[styles.date, { color: theme.textSecondary }]}>
+          {dateStr}
         </Text>
-        {note.tags.length > 0 && (
+        {tags.length > 0 && (
           <View style={styles.tags}>
-            {note.tags.slice(0, 2).map((tag, i) => (
-              <View key={i} style={[styles.tag, { backgroundColor: isSelected ? 'rgba(255,255,255,0.2)' : 'rgba(0,122,255,0.15)' }]}>
-                <Text style={[styles.tagText, { color: isSelected ? '#fff' : colors.accent }]}>{tag}</Text>
+            {tags.slice(0, 3).map((tag, i) => (
+              <View key={i} style={[styles.tag, { backgroundColor: theme.primary + '20' }]}>
+                <Text style={[styles.tagText, { color: theme.primary }]}>{tag.trim()}</Text>
               </View>
             ))}
           </View>
@@ -48,37 +54,40 @@ export default function NoteCard({ note, isSelected, onPress, colors }) {
 
 const styles = StyleSheet.create({
   card: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderBottomWidth: 0.5,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 16,
+    marginVertical: 4,
+    borderWidth: 0.5,
   },
   title: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
-    marginBottom: 3,
-  },
-  preview: {
-    fontSize: 13,
     marginBottom: 4,
   },
-  meta: {
+  preview: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  footer: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   date: {
-    fontSize: 11,
+    fontSize: 12,
   },
   tags: {
     flexDirection: 'row',
     gap: 4,
   },
   tag: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
   },
   tagText: {
-    fontSize: 10,
+    fontSize: 11,
   },
 });

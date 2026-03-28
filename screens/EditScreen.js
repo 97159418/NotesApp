@@ -1,30 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../theme';
+import { getNoteById, createNote, updateNote } from '../db/database';
 import TagEditor from '../components/TagEditor';
-import { getNote, createNote, updateNote, deleteNote } from '../db/database';
 
 export default function EditScreen({ route, navigation }) {
+  const { theme } = useTheme();
   const { noteId } = route.params;
+  const isNew = !noteId;
+
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [tags, setTags] = useState([]);
-  const [dark] = useState(true);
+  const [tags, setTags] = useState('');
+  const [hasChanges, setHasChanges] = useState(false);
   const contentRef = useRef(null);
 
-  const colors = dark ? {
-    bg: '#1c1c1e', text: '#f5f5f7', text2: '#98989d',
-    border: '#38383a', accent: '#0a84ff', toolbarBg: '#2c2c2e'
-  } : {
-    bg: '#fff', text: '#1d1d1f', text2: '#86868b',
-    border: '#d2d2d7', accent: '#007aff', toolbarBg: '#f5f5f7'
-  };
-
+  // 加载已有笔记
   useEffect(() => {
     if (noteId) {
-      getNote(noteId).then(note => {
+      getNoteById(noteId).then((note) => {
         if (note) {
           setTitle(note.title);
           setContent(note.content);
@@ -34,94 +39,129 @@ export default function EditScreen({ route, navigation }) {
     }
   }, [noteId]);
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <View style={{ flexDirection: 'row', gap: 16 }}>
-          <TouchableOpacity onPress={handleSave}>
-            <Text style={{ color: colors.accent, fontSize: 15, fontWeight: '600' }}>保存</Text>
-          </TouchableOpacity>
-          {noteId && (
-            <TouchableOpacity onPress={handleDelete}>
-              <Text style={{ color: '#ff3b30', fontSize: 15 }}>删除</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ),
-      headerStyle: { backgroundColor: colors.toolbarBg },
-      headerTintColor: colors.accent,
-      title: noteId ? '编辑笔记' : '新建笔记',
-    });
-  }, [title, content, tags, noteId]);
+  const markChanged = () => {
+    if (!hasChanges) setHasChanges(true);
+  };
 
   const handleSave = async () => {
-    if (noteId) {
-      await updateNote(noteId, title, content, tags);
-    } else {
-      await createNote(title, content, tags);
+    const trimmedTitle = title.trim();
+    const trimmedContent = content.trim();
+
+    if (!trimmedTitle && !trimmedContent) {
+      // 空笔记直接返回
+      navigation.goBack();
+      return;
     }
-    navigation.goBack();
-  };
 
-  const handleDelete = () => {
-    Alert.alert('删除笔记', '确定要删除吗？', [
-      { text: '取消', style: 'cancel' },
-      {
-        text: '删除', style: 'destructive',
-        onPress: async () => { await deleteNote(noteId); navigation.goBack(); }
+    try {
+      if (isNew) {
+        await createNote(trimmedTitle, trimmedContent, tags);
+      } else {
+        await updateNote(noteId, trimmedTitle, trimmedContent, tags);
       }
-    ]);
+      navigation.goBack();
+    } catch (e) {
+      Alert.alert('保存失败', e.message);
+    }
   };
 
-  const handleAddTag = (tag) => setTags([...tags, tag]);
-  const handleRemoveTag = (i) => setTags(tags.filter((_, idx) => idx !== i));
+  const handleBack = () => {
+    if (hasChanges) {
+      Alert.alert('未保存', '是否放弃更改？', [
+        { text: '继续编辑', style: 'cancel' },
+        { text: '放弃', style: 'destructive', onPress: () => navigation.goBack() },
+      ]);
+    } else {
+      navigation.goBack();
+    }
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: colors.bg }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
-    >
-      <TextInput
-        style={[styles.titleInput, { color: colors.text }]}
-        placeholder="标题"
-        placeholderTextColor={colors.text2}
-        value={title}
-        onChangeText={setTitle}
-        fontSize={22}
-        fontWeight="700"
-      />
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
+      {/* 顶栏 */}
+      <View style={[styles.header, { borderBottomColor: theme.border }]}>
+        <TouchableOpacity onPress={handleBack}>
+          <Text style={[styles.backBtn, { color: theme.primary }]}>← 返回</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handleSave}>
+          <Text style={[styles.saveBtn, { color: theme.primary }]}>完成</Text>
+        </TouchableOpacity>
+      </View>
 
-      <TagEditor tags={tags} onAdd={handleAddTag} onRemove={handleRemoveTag} colors={colors} />
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView style={styles.editor} keyboardDismissMode="on-drag">
+          {/* 标签编辑 */}
+          <TagEditor tags={tags} onChangeTags={(t) => { setTags(t); markChanged(); }} />
 
-      <TextInput
-        ref={contentRef}
-        style={[styles.contentInput, { color: colors.text }]}
-        placeholder="开始输入..."
-        placeholderTextColor={colors.text2}
-        value={content}
-        onChangeText={setContent}
-        multiline
-        textAlignVertical="top"
-        fontSize={16}
-        lineHeight={24}
-      />
-    </KeyboardAvoidingView>
+          {/* 标题 */}
+          <TextInput
+            style={[styles.titleInput, { color: theme.text }]}
+            placeholder="标题"
+            placeholderTextColor={theme.textSecondary}
+            value={title}
+            onChangeText={(t) => { setTitle(t); markChanged(); }}
+            multiline
+            maxLength={100}
+          />
+
+          {/* 内容 */}
+          <TextInput
+            ref={contentRef}
+            style={[styles.contentInput, { color: theme.text }]}
+            placeholder="开始输入..."
+            placeholderTextColor={theme.textSecondary}
+            value={content}
+            onChangeText={(t) => { setContent(t); markChanged(); }}
+            multiline
+            textAlignVertical="top"
+            autoFocus={isNew}
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  titleInput: {
+  container: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
+    paddingVertical: 12,
+    borderBottomWidth: 0.5,
+  },
+  backBtn: {
+    fontSize: 16,
+  },
+  saveBtn: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  editor: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  titleInput: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 16,
+    lineHeight: 32,
   },
   contentInput: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 24,
     fontSize: 16,
+    lineHeight: 24,
+    minHeight: 300,
+    paddingBottom: 100,
   },
 });
