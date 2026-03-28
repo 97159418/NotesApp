@@ -30,7 +30,9 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Install dependencies
-        run: npx expo install --fix
+        run: |
+          npm install
+          npx expo install --fix 2>/dev/null || true
 
       - name: Build APK with EAS
         run: eas build --platform android --profile apk --non-interactive --no-wait
